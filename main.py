@@ -78,9 +78,9 @@ class SyncAPIWrapper:
     同步API封装，将异步API封装为同步调用方式
     """
 
-    def __init__(self, async_api: AsyncAPI):
+    def __init__(self, async_api: AsyncAPI, spi: SPI):
         self.async_api = async_api
-        self.spi = SPI()
+        self.spi = spi
         self.loop = asyncio.new_event_loop()
         self.thread = threading.Thread(target=self._run_event_loop, daemon=True)
         self.thread.start()
@@ -142,9 +142,10 @@ class SyncAPIWrapper:
 def main():
     # 创建异步API实例
     async_api = AsyncAPI()
+    spi = SPI()
 
     # 创建同步封装
-    sync_wrapper = SyncAPIWrapper(async_api)
+    sync_wrapper = SyncAPIWrapper(async_api=async_api, spi=spi)
 
     try:
         # 同步方式调用异步API
