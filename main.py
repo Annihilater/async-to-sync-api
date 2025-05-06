@@ -8,6 +8,7 @@ import queue
 import threading
 import time
 from typing import Callable, Dict, Any
+from datetime import datetime, timezone, timedelta
 
 
 class AsyncAPI:
@@ -45,11 +46,18 @@ class AsyncAPI:
         # 模拟异步处理
         await asyncio.sleep(2)
 
+        # 获取当前UTC时间并转换为UTC+8时区
+        timestamp = time.time()
+        dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+        dt_utc8 = dt + timedelta(hours=8)
+        formatted_time = dt_utc8.strftime("%Y-%m-%d %H:%M:%S")
+
         # 模拟请求处理结果
         result = {
             "request_id": request_id,
             "result": f"处理结果-{data.get('value', 'unknown')}",
-            "timestamp": time.time()
+            "timestamp": timestamp,
+            "formatted_time": formatted_time
         }
 
         # 触发回调
@@ -70,7 +78,7 @@ class SPI:
         回调方法，处理响应结果
         :param result: 响应结果
         """
-        print(f"收到回调响应: {result}")
+        print(f"收到回调响应: [时间: {result.get('formatted_time')}] {result['request_id']} - {result['result']}")
 
 
 class SyncAPIWrapper:
@@ -151,13 +159,13 @@ def main():
         # 同步方式调用异步API
         print("开始同步调用...")
         result1 = sync_wrapper.request("req-001", {"value": "测试1"})
-        print(f"同步调用结果1: {result1}")
+        print(f"同步调用结果1: 请求ID={result1['request_id']}, 结果={result1['result']}, 时间={result1['formatted_time']}")
 
         result2 = sync_wrapper.request("req-002", {"value": "测试2"})
-        print(f"同步调用结果2: {result2}")
+        print(f"同步调用结果2: 请求ID={result2['request_id']}, 结果={result2['result']}, 时间={result2['formatted_time']}")
 
         result3 = sync_wrapper.request("req-003", {"value": "测试3"})
-        print(f"同步调用结果3: {result3}")
+        print(f"同步调用结果3: 请求ID={result3['request_id']}, 结果={result3['result']}, 时间={result3['formatted_time']}")
 
     except Exception as e:
         print(f"调用异常: {e}")
