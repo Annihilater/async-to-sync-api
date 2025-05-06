@@ -156,6 +156,9 @@ def main():
         result2 = sync_wrapper.request("req-002", {"value": "测试2"})
         print(f"同步调用结果2: {result2}")
 
+        result3 = sync_wrapper.request("req-003", {"value": "测试3"})
+        print(f"同步调用结果3: {result3}")
+
     except Exception as e:
         print(f"调用异常: {e}")
     finally:
