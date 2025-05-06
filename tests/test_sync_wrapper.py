@@ -2,8 +2,9 @@ import asyncio
 import time
 import unittest
 from typing import Dict, Any
+from datetime import datetime, timezone, timedelta
 
-from main import AsyncAPI, SyncAPIWrapper
+from main import AsyncAPI, SPI, SyncAPIWrapper
 
 
 class TestSyncAPIWrapper(unittest.TestCase):
@@ -16,7 +17,8 @@ class TestSyncAPIWrapper(unittest.TestCase):
         测试前准备
         """
         self.async_api = AsyncAPI()
-        self.sync_wrapper = SyncAPIWrapper(self.async_api)
+        self.spi = SPI()
+        self.sync_wrapper = SyncAPIWrapper(self.async_api, self.spi)
 
     def tearDown(self) -> None:
         """
@@ -35,10 +37,16 @@ class TestSyncAPIWrapper(unittest.TestCase):
 
         async def mock_request(request_id: str, data: Dict[str, Any]) -> None:
             # 直接触发回调，不等待
+            timestamp = time.time()
+            dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+            dt_utc8 = dt + timedelta(hours=8)
+            formatted_time = dt_utc8.strftime("%Y-%m-%d %H:%M:%S")
+            
             result = {
                 "request_id": request_id,
                 "result": f"测试结果-{data.get('value', 'unknown')}",
-                "timestamp": time.time()
+                "timestamp": timestamp,
+                "formatted_time": formatted_time
             }
             if request_id in self.async_api._callbacks:
                 self.async_api._callbacks[request_id](result)
@@ -54,6 +62,8 @@ class TestSyncAPIWrapper(unittest.TestCase):
             self.assertEqual(result["request_id"], "test-001")
             self.assertEqual(result["result"], "测试结果-测试数据")
             self.assertIn("timestamp", result)
+            self.assertIn("formatted_time", result)
+            self.assertIsInstance(result["formatted_time"], str)
         finally:
             # 恢复原始方法
             self.async_api.request = original_request
@@ -95,17 +105,24 @@ class TestSyncAPIWrapper(unittest.TestCase):
 
         async def mock_multiple_requests(request_id: str, data: Dict[str, Any]) -> None:
             # 记录请求时间
-            request_times[request_id] = time.time()
-
+            timestamp = time.time()
+            request_times[request_id] = timestamp
+            
             # 不同请求不同延迟
             delay = 0.1 if request_id == "req-1" else 0.2
             await asyncio.sleep(delay)
-
+            
+            # 获取当前UTC时间并转换为UTC+8
+            dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+            dt_utc8 = dt + timedelta(hours=8)
+            formatted_time = dt_utc8.strftime("%Y-%m-%d %H:%M:%S")
+            
             # 触发回调
             result = {
                 "request_id": request_id,
                 "result": f"结果-{data.get('value', 'unknown')}",
-                "timestamp": time.time()
+                "timestamp": timestamp,
+                "formatted_time": formatted_time
             }
             if request_id in self.async_api._callbacks:
                 self.async_api._callbacks[request_id](result)
@@ -121,10 +138,12 @@ class TestSyncAPIWrapper(unittest.TestCase):
             # 验证结果
             self.assertEqual(result1["request_id"], "req-1")
             self.assertEqual(result1["result"], "结果-数据1")
-
+            self.assertIn("formatted_time", result1)
+            
             self.assertEqual(result2["request_id"], "req-2")
             self.assertEqual(result2["result"], "结果-数据2")
-
+            self.assertIn("formatted_time", result2)
+            
         finally:
             # 恢复原始方法
             self.async_api.request = original_request
